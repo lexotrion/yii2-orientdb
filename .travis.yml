@@ -19,7 +19,7 @@ matrix:
 sudo: false
 
 before_install:
- - cd ./tests/data/ci && chmod +x *.sh
+ - cd ./tests/data/ci && chmod +x *.sh && cd ../../..
 
 install:
   - "./tests/data/ci/_composer_install.sh"
