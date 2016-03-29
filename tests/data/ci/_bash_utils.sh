@@ -2,7 +2,7 @@
 
 build(){
 
-    if command_exists "mvn" && [[ "$1" != *"-"* ]] && [[ "$1" != *"SNAPSHOT"* ]] && [[ "$1" != *"2.0"* ]]; then
+    if command_exists "mvn" && [[ "$1" != *"-"* ]] && [[ "$1" != *"SNAPSHOT"* ]] && [[ "$1" != *"2.0"* ]] && [[ "$1" != *"2.1"* ]]; then
         echo "Build started with MAVEN"
         build_via_mvn $1 $2
     elif [[ "$1" == *"SNAPSHOT"* ]]; then
