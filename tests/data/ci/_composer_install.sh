@@ -9,5 +9,6 @@ if [ ! -d "$PARENT_DIR/vendor/bin" ]; then
     echo "Updating Composer....\n"
     php -r "readfile('https://getcomposer.org/installer');" | php
     echo "Launch...\n"
-    php "$PARENT_DIR/composer.phar" install --prefer-source
+    php "$PARENT_DIR/composer.phar" global require "fxp/composer-asset-plugin:~1.1.0"
+    php "$PARENT_DIR/composer.phar" install --prefer-dist --no-interaction
 fi
