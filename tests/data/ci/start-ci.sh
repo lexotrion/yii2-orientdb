@@ -2,7 +2,7 @@
 set -e
 
 PARENT_DIR=$(dirname $(cd "$(dirname "$0")/../.."; pwd))
-CI_DIR="$PARENT_DIR/ci/environment"
+CI_DIR="$PARENT_DIR/tests/data/ci/environment"
 DEFAULT_ORIENT_VERSION="2.1.13"
 
 # launch simple instance in debug mode with shell hang up

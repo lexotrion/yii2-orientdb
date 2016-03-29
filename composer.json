@@ -19,8 +19,8 @@
         "phpunit/phpunit": "4.8.24",
         "monolog/monolog": "1.11.*",
         "phpdocumentor/template-zend": "1.3.0",
-        "phpdocumentor/phpdocumentor": "dev-master",
-        "satooshi/php-coveralls": "dev-master"
+        "phpdocumentor/phpdocumentor": "v2.8.5",
+        "satooshi/php-coveralls": "v1.0.1"
     },
     "extra": {
         "branch-alias": {
