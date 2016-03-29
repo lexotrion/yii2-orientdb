@@ -102,11 +102,10 @@ build_via_github (){
     OUTPUT_DIR="${2:-$(pwd)}"
 
     ODB_COMPILED_NAME="orientdb-community-${ODB_VERSION}"
-    ODB_ARCHIVED_NAME="orientdb-${ODB_VERSION}"
     ODB_PACKAGE_EXT="tar.gz"
     ODB_COMPRESSED=${ODB_COMPILED_NAME}.${ODB_PACKAGE_EXT}
 
-    GITHUB_URL="https://github.com/orientechnologies/orientdb/archive/${ODB_VERSION}.${ODB_PACKAGE_EXT}"
+    GITHUB_URL="http://orientdb.com/download.php?email=unknown@unknown.com&os=multi&file=${ODB_COMPRESSED}"
 
     download ${GITHUB_URL} ${OUTPUT_DIR} ${ODB_COMPRESSED}
 
@@ -114,20 +113,6 @@ build_via_github (){
 
     echo "Extract package"
     extract ${ODB_PACKAGE_PATH} ${CI_DIR}
-
-    echo "cd ${CI_DIR}/${ODB_ARCHIVED_NAME}"
-    cd "${CI_DIR}/${ODB_ARCHIVED_NAME}"
-
-    ant clean install
-
-    echo "mv ${CI_DIR}/releases/* ${CI_DIR}"
-    mv ${CI_DIR}/releases/* ${CI_DIR}
-
-    echo "rm -rf ${CI_DIR}/releases"
-    rm -rf ${CI_DIR}/releases
-
-    echo "rm -rf ${CI_DIR}/${ODB_ARCHIVED_NAME}"
-    rm -rf ${CI_DIR}/${ODB_ARCHIVED_NAME}
 
 }
 
