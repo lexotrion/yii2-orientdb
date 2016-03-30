@@ -30,3 +30,5 @@ phpunit.phar
 
 # local tests configuration
 /tests/data/config.local.php
+
+/tests/data/ci/environment
