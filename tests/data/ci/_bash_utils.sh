@@ -2,15 +2,12 @@
 
 build(){
 
-    if command_exists "mvn" && [[ "$1" != *"-"* ]] && [[ "$1" != *"SNAPSHOT"* ]] && [[ "$1" != *"2.0"* ]] && [[ "$1" != *"2.1"* ]]; then
-        echo "Build started with MAVEN"
-        build_via_mvn $1 $2
-    elif [[ "$1" == *"SNAPSHOT"* ]]; then
+    if command_exists "mvn" && [[ "$1" == *"-"* ]]; then
         echo "Build by clone/pull github develop branch"
         build_via_git $1 $2
     else
         echo "Build by download from github repository"
-        build_via_github $1 $2
+        get_compiled $1 $2
     fi
 
 }
@@ -77,15 +74,15 @@ build_via_git (){
         echo "git clone https://github.com/orientechnologies/orientdb.git orientdb-develop"
         git clone https://github.com/orientechnologies/orientdb.git orientdb-develop
         cd orientdb-develop
-        git checkout develop
+        git checkout ${ODB_VERSION}
     else
         echo "Git clone found. Updating."
         cd orientdb-develop
-        git checkout develop
+        git checkout ${ODB_VERSION}
     fi
 
-    git pull origin develop
-    ant clean install
+    git pull origin ${ODB_VERSION}
+    mvn clean install
 
     echo "mv ${CI_DIR}/releases/* ${CI_DIR}"
     mv ${CI_DIR}/releases/* ${CI_DIR}
@@ -95,7 +92,7 @@ build_via_git (){
 
 }
 
-build_via_github (){
+get_compiled (){
 
     ODB_VERSION=$1
     CI_DIR=$2
@@ -111,38 +108,6 @@ build_via_github (){
 
     ODB_PACKAGE_PATH="${CI_DIR}/${ODB_COMPRESSED}"
 
-    echo "Extract package"
-    extract ${ODB_PACKAGE_PATH} ${CI_DIR}
-
-}
-
-build_via_mvn () {
-
-    ODB_VERSION=$1
-    CI_DIR=$2
-
-    ODB_COMPILED_NAME="orientdb-community-${ODB_VERSION}"
-
-    ODB_PACKAGE_EXT="tar.gz"
-    ODB_COMPRESSED=${ODB_COMPILED_NAME}.${ODB_PACKAGE_EXT}
-
-    OUTPUT_DIR="${2:-$(pwd)}"
-
-    if [ ! -d "$OUTPUT_DIR" ]; then
-        mkdir "$OUTPUT_DIR"
-    fi
-
-    if command_exists "mvn" ; then
-        echo "mvn org.apache.maven.plugins:maven-dependency-plugin:2.8:get -Dartifact=com.orientechnologies:orientdb-community:\"${ODB_VERSION}\":\"${ODB_PACKAGE_EXT}\":distribution -DremoteRepositories=https://oss.sonatype.org/content/repositories/snapshots/ -Ddest=\"$OUTPUT_DIR/$ODB_COMPRESSED\""
-        mvn org.apache.maven.plugins:maven-dependency-plugin:2.8:get -Dartifact=com.orientechnologies:orientdb-community:"${ODB_VERSION}":"${ODB_PACKAGE_EXT}":distribution -DremoteRepositories=https://oss.sonatype.org/content/repositories/snapshots/ -Ddest="$OUTPUT_DIR/$ODB_COMPRESSED"
-    else
-        echo "Cannot download $1 [maven is not installed]"
-        exit 1
-    fi
-
-    ODB_PACKAGE_PATH="${CI_DIR}/${ODB_COMPILED_NAME}.${ODB_PACKAGE_EXT}"
-
-    echo "Extract package"
     extract ${ODB_PACKAGE_PATH} ${CI_DIR}
 
 }

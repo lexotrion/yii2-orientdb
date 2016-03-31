@@ -18,11 +18,12 @@ matrix:
 # faster builds on new travis setup not using sudo
 sudo: false
 
-before_install:
- - cd ./tests/data/ci && chmod +x *.sh && cd ../../..
-
 install:
-  - "./tests/data/ci/_composer_install.sh"
+  - travis_retry composer self-update && composer --version
+  - composer config -g github-oauth.github.com $GITHUB_TOKEN
+  - travis_retry composer global require "fxp/composer-asset-plugin:~1.0.0"
+  - export PATH="$HOME/.composer/vendor/bin:$PATH"
+  - travis_retry composer install --prefer-dist --no-interaction
   - mkdir -p build/logs
   - "./tests/data/ci/start-ci.sh $ORIENTDB_VERSION"
 
@@ -36,23 +37,11 @@ before_cache:
 - rm -f ./tests/data/ci/environment/orientdb-community-$ORIENTDB_VERSION/log/*
 - rm -rf ./tests/data/ci/environment/orientdb-community-$ORIENTDB_VERSION/databases/*
 
-before_script:
-  - |
-    if [ $TRAVIS_PHP_VERSION = '5.6' ]; then
-      PHPUNIT_FLAGS="--coverage-clover build/logs/clover.xml"
-    fi
-
-
 script:
- - ./vendor/bin/phpunit $PHPUNIT_FLAGS
+ - ./vendor/bin/phpunit --coverage-clover build/logs/clover.xml
 
 after_script:
-  - |
-    if [ $TRAVIS_PHP_VERSION = '5.6' ]; then
-      php ./vendor/bin/coveralls -v
-    fi
+  - php ./vendor/bin/coveralls -v
 
 env:
   - ORIENTDB_VERSION=2.1.13
-  - ORIENTDB_VERSION=2.0.18
-  - ORIENTDB_VERSION=1.7.10
