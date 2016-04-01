@@ -18,7 +18,7 @@ abstract class TestCase extends \PHPUnit_Framework_TestCase
     protected $orientDbConfig = [];
 
     /**
-     * @var Connection Orient connection instance.
+     * @var \phantomd\orientdb\Connection Orient connection instance.
      */
     protected $orientdb;
 
@@ -110,26 +110,11 @@ abstract class TestCase extends \PHPUnit_Framework_TestCase
      * Drops the specified collection.
      * @param string $name collection name.
      */
-    protected function dropCollection($name)
+    protected function dropDataCluster($name)
     {
         if ($this->orientdb) {
             try {
-                $this->orientdb->getCollection($name)->drop();
-            } catch (Exception $e) {
-                // shut down exception
-            }
-        }
-    }
-
-    /**
-     * Drops the specified file collection.
-     * @param string $name file collection name.
-     */
-    protected function dropFileCollection($name = 'fs')
-    {
-        if ($this->orientdb) {
-            try {
-                $this->orientdb->getFileCollection($name)->drop();
+                $this->orientdb->dbDrop($name);
             } catch (Exception $e) {
                 // shut down exception
             }
@@ -152,18 +137,6 @@ abstract class TestCase extends \PHPUnit_Framework_TestCase
         }
 
         return $result;
-    }
-
-    /**
-     * Returns the Orient server version.
-     * @return string Orient server version.
-     */
-    protected function getServerVersion()
-    {
-        $connection = $this->getConnection();
-        $buildInfo  = $connection->getDatabase()->executeCommand(['buildinfo' => true]);
-
-        return $buildInfo['version'];
     }
 
 }

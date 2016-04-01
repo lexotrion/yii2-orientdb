@@ -20,7 +20,7 @@ class ConnectionTest extends TestCase
 
         $connection->open();
 
-        $this->assertEquals($params['connection']['database'], $connection->defaultDatabaseName);
+        $this->assertEquals($params['connection']['database'], $connection->name);
         $this->assertEquals($params['options'], $connection->options);
     }
 
@@ -29,30 +29,25 @@ class ConnectionTest extends TestCase
         $connection = $this->getConnection(false, false);
 
         $this->assertFalse($connection->isActive);
-        $this->assertEquals(null, $connection->orientClient);
+        $this->assertEquals(null, $connection->client);
 
         $connection->open();
         $this->assertTrue($connection->isActive);
-        $this->assertTrue(is_object($connection->orientClient));
+        $this->assertTrue(is_object($connection->client));
 
         $connection->close();
         $this->assertFalse($connection->isActive);
-        $this->assertEquals(null, $connection->orientClient);
+        $this->assertEquals(null, $connection->client);
     }
 
     public function testGetDatabase()
     {
         $connection = $this->getConnection();
 
-        $database = $connection->getDatabase($connection->defaultDatabaseName);
+        $database = $connection->getCluster();
+        $this->assertTrue($database instanceof \PhpOrient\Protocols\Common\ClustersMap);
 
-        $this->assertTrue($database instanceof Database);
-        $this->assertTrue($database->orientDb instanceof \PhpOrient\PhpOrient);
-
-        $database2 = $connection->getDatabase($connection->defaultDatabaseName);
-        $this->assertTrue($database === $database2);
-
-        $databaseRefreshed = $connection->getDatabase($connection->defaultDatabaseName, true);
+        $databaseRefreshed = $connection->getDb(true)->getCluster();
         $this->assertFalse($database === $databaseRefreshed);
     }
 

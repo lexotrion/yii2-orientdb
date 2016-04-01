@@ -7,6 +7,15 @@ use yii\base\Component;
 use yii\base\InvalidConfigException;
 use PhpOrient\PhpOrient;
 
+/**
+ * Connection represents a connection to a database.
+ *
+ * @property boolean $isActive Whether the DB connection is established. This property is read-only.
+ * @property \PhpOrient\PhpOrient $client OrientDB client instance. This property is read-only.
+ *
+ * @author Anton Ermolovich <anton.ermolovich@gmail.com>
+ * @since 2.0
+ */
 class Connection extends Component
 {
 
@@ -57,85 +66,60 @@ class Connection extends Component
     public $connection = [];
 
     /**
-     * @var string name of the Orient database to use by default.
-     * If this field left blank, connection instance will attempt to determine it from
-     * [[options]] and [[dsn]] automatically, if needed.
-     */
-    public $defaultDatabaseName;
-
-    /**
      * @var \PhpOrient\PhpOrient Orient client instance.
      */
-    public $orientClient;
+    private $orientdbClient;
 
     /**
-     * @var Database[] list of Orient databases
+     * @var string name of the Orient database to use by default.
+     * If this field left blank, connection instance will attempt to determine it from
+     * [[connection]] automatically, if needed.
      */
-    private $_databases = [];
+    private $databaseName;
 
-    public function init()
+    /**
+     * Get database name
+     * @return string
+     */
+    public function getName()
     {
-        $this->fetchDefaultDatabaseName();
+        return $this->__toString();
     }
 
     /**
-     * Returns the Orient collection with the given name.
-     * @param string|null $name collection name, if null default one will be used.
+     * Current database name
+     * @return string
+     */
+    public function __toString()
+    {
+        $return = null;
+        if (is_object($this->client)) {
+            $return = $this->client->getTransport()->databaseName;
+        }
+        return (string)$return;
+    }
+
+    /**
+     * Returns the Orient cluster with the given name.
      * @param boolean $refresh whether to reestablish the database connection even if it is found in the cache.
-     * @return Database database instance.
+     * @return \PhpOrient\Protocols\Common\ClustersMap cluster instance.
      */
-    public function getDatabase($name = null, $refresh = false)
+    public function getDb($refresh = false)
     {
-        if ($name === null) {
-            $name = $this->fetchDefaultDatabaseName();
-        }
-        if ($refresh || !array_key_exists($name, $this->_databases)) {
-            $this->_databases[$name] = $this->selectDatabase($name);
+        if ($refresh || (is_object($this->client) && false === $this->client->getTransport()->databaseOpened)) {
+            $this->selectDatabase($this->getDatabaseName());
         }
 
-        return $this->_databases[$name];
+        return $this;
     }
 
     /**
-     * Returns [[defaultDatabaseName]] value, if it is not set,
-     * attempts to determine it from [[dsn]] value.
-     * @return string default database name
-     * @throws \yii\base\InvalidConfigException if unable to determine default database name.
+     * Get ClasterMap object
+     * @return \PhpOrient\Protocols\Common\ClustersMap
      */
-    protected function fetchDefaultDatabaseName()
+    public function getCluster()
     {
-        if ($this->defaultDatabaseName === null) {
-            if (isset($this->connection['database'])) {
-                $this->defaultDatabaseName = $this->connection['database'];
-            } else {
-                throw new InvalidConfigException("Unable to determine default database name connection parameters.");
-            }
-        }
-
-        return $this->defaultDatabaseName;
-    }
-
-    /**
-     * Selects the database with given name.
-     * @param string $name database name.
-     * @return Database database instance.
-     */
-    protected function selectDatabase($name)
-    {
-        $this->open();
-
-        $database = clone $this->orientClient;
-        $database->dbOpen(
-            $name, // Database name
-            $this->connection['username'], // User name
-            $this->connection['password'], // User password
-            $this->options // Database parameters
-        );
-        return Yii::createObject([
-                'class'    => 'phantomd\orientdb\Database',
-                'database' => $name,
-                'orientDb' => $database,
-        ]);
+        return $this->client->getTransport()->getClusterMap();
     }
 
     /**
@@ -144,7 +128,7 @@ class Connection extends Component
      */
     public function getIsActive()
     {
-        return is_object($this->orientClient) && $this->orientClient->getTransport()->getSocket()->connected;
+        return is_object($this->client) && $this->client->getTransport()->getSocket()->connected;
     }
 
     /**
@@ -154,7 +138,7 @@ class Connection extends Component
      */
     public function open()
     {
-        if ($this->orientClient === null) {
+        if ($this->client === null) {
             $this->hostname = $this->hostname ? : '127.0.0.1';
             $this->port     = $this->port ? : 2424;
 
@@ -166,7 +150,8 @@ class Connection extends Component
                 Yii::trace($token, __METHOD__);
                 Yii::beginProfile($token, __METHOD__);
 
-                $this->orientClient = new PhpOrient($this->hostname, $this->port);
+                $this->client = new PhpOrient($this->hostname, $this->port, session_id());
+                $this->getDb();
 
                 $this->initConnection();
                 Yii::endProfile($token, __METHOD__);
@@ -183,13 +168,70 @@ class Connection extends Component
      */
     public function close()
     {
-        if ($this->orientClient !== null) {
+        if ($this->client !== null) {
             Yii::trace('Closing OrientDB connection: ' . $this->hostname . ':' . $this->port, __METHOD__);
-            if ($this->orientClient->getTransport()->databaseOpened) {
-                $this->orientClient->dbClose();
+            if ($this->client->getTransport()->databaseOpened) {
+                $this->client->dbClose();
             }
-            $this->orientClient = null;
-            $this->_databases   = [];
+            $this->client = null;
+        }
+    }
+
+    /**
+     * Get client object
+     * @return \PhpOrient\PhpOrient OrientDB client instance.
+     */
+    public function getClient()
+    {
+        return $this->orientdbClient;
+    }
+
+    /**
+     * Set client object
+     * @param \PhpOrient\PhpOrient|null $value OrientDB client instance.
+     */
+    protected function setClient($value)
+    {
+        $this->orientdbClient = $value;
+    }
+
+    /**
+     * Returns [[defaultDatabaseName]] value, if it is not set,
+     * attempts to determine it from [[connection]] value.
+     * @return string default database name
+     * @throws \yii\base\InvalidConfigException if unable to determine default database name.
+     */
+    protected function getDatabaseName()
+    {
+        if ($this->databaseName === null) {
+            if (isset($this->connection['database'])) {
+                $this->databaseName = $this->connection['database'];
+            } else {
+                throw new InvalidConfigException("Unable to determine database name connection parameters.");
+            }
+        }
+
+        return $this->databaseName;
+    }
+
+    /**
+     * Selects the database with given name.
+     * @param string $name database name.
+     * @return Database database instance.
+     */
+    protected function selectDatabase($name)
+    {
+        $this->open();
+
+        try {
+            $this->client->dbOpen(
+                $name, // Database name
+                $this->connection['username'], // User name
+                $this->connection['password'], // User password
+                $this->options // Database parameters
+            );
+        } catch (Exception $e) {
+            echo $e->getMessage();
         }
     }
 
@@ -201,6 +243,23 @@ class Connection extends Component
     protected function initConnection()
     {
         $this->trigger(self::EVENT_AFTER_OPEN);
+    }
+
+    /**
+     * Calls the named method which is not a class method.
+     *
+     * @param string $name the method name
+     * @param array $params method parameters
+     * @return mixed the method return value
+     * @throws UnknownMethodException when calling unknown method
+     */
+    public function __call($name, $params)
+    {
+        if (method_exists($this->client, $name)) {
+            return call_user_func_array([$this->client, $name], $params);
+        }
+
+        return parent::__call($name, $params);
     }
 
 }
